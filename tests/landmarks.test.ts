@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoFrame, kinematicHand } from "../src/hands/demoHands";
+import { landmarkToScreen } from "../src/mapping";
 import { FINGER_NAMES, pointersFromHands, TIP_INDEX } from "../src/types";
 
 describe("hand model", () => {
@@ -7,6 +8,14 @@ describe("hand model", () => {
     const hand = kinematicHand("Right", { x: 0.5, y: 0.5 });
     expect(hand.landmarks).toHaveLength(21);
     expect(hand.landmarks.every((lm) => Number.isFinite(lm.x) && Number.isFinite(lm.y))).toBe(true);
+  });
+
+  it("places the left hand on the left after the selfie map", () => {
+    const [left] = demoFrame(0);
+    expect(left?.side).toBe("Left");
+    const palm = left!.landmarks[0]!;
+    const screen = landmarkToScreen(palm, 1000, 1000, { mirrorX: true, inset: 0 });
+    expect(screen.x).toBeLessThan(500);
   });
 
   it("exposes ten named fingertip pointers for two hands", () => {

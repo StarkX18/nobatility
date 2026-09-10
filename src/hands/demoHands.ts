@@ -66,9 +66,11 @@ export function demoFrame(t: number): TrackedHand[] {
   const breathe = Math.sin(t * 1.1) * 0.03;
   const orbit = t * 0.35;
 
+  // Authored in unmirrored camera space so the default selfie map
+  // places the user's left hand on the left of the display.
   const left = kinematicHand(
     "Left",
-    { x: 0.33 + Math.sin(orbit) * 0.04, y: 0.52 + breathe },
+    { x: 0.67 + Math.sin(orbit) * 0.04, y: 0.52 + breathe },
     {
       spread: 0.85 + Math.sin(t * 1.7) * 0.25,
       curl: 0.08 + Math.max(0, Math.sin(t * 0.9)) * 0.35,
@@ -80,7 +82,7 @@ export function demoFrame(t: number): TrackedHand[] {
 
   const right = kinematicHand(
     "Right",
-    { x: 0.67 + Math.cos(orbit * 0.9) * 0.04, y: 0.5 - breathe },
+    { x: 0.33 + Math.cos(orbit * 0.9) * 0.04, y: 0.5 - breathe },
     {
       spread: 1 + Math.cos(t * 1.4) * 0.2,
       curl: 0.05 + Math.max(0, Math.sin(t * 1.3 + 1)) * 0.5,

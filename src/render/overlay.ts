@@ -173,6 +173,7 @@ export class OverlayRenderer {
     ctx.fillStyle = "rgba(255,255,255,0.78)";
     ctx.textAlign = "center";
     const label = `${pointer.side === "Left" ? "L" : "R"} ${pointer.finger}`;
-    ctx.fillText(label, x, y + radius + 16);
+    const slot = FINGER_NAMES.indexOf(pointer.finger);
+    ctx.fillText(label, x + (slot - 2) * 10, y + radius + 16);
   }
 }
