@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nobatility — far-field fingers</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="stage">
+      <video id="camera" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+
+      <header class="hud top">
+        <div class="brand">
+          <span class="mark"></span>
+          <div>
+            <strong>Nobatility</strong>
+            <p>Ten fingertip pointers · camera + voice MVP</p>
+          </div>
+        </div>
+        <div class="stats" id="stats">
+          <span data-testid="fps">— fps</span>
+          <span data-testid="hand-count">0 hands</span>
+          <span data-testid="source">demo</span>
+        </div>
+      </header>
+
+      <aside class="hud left-legend" id="legend"></aside>
+
+      <footer class="hud bottom">
+        <div class="controls">
+          <button type="button" id="btn-demo" data-testid="btn-demo" class="active">Demo</button>
+          <button type="button" id="btn-camera" data-testid="btn-camera">Camera</button>
+          <button type="button" id="btn-skeleton" data-testid="btn-skeleton" class="active">Skeleton</button>
+          <button type="button" id="btn-trails" class="active">Trails</button>
+          <button type="button" id="btn-mirror" class="active">Mirror</button>
+          <button type="button" id="btn-voice" data-testid="btn-voice">Voice</button>
+        </div>
+        <div class="voice-pill" id="voice-pill" data-testid="voice-pill">
+          <span class="dot"></span>
+          <span id="voice-text">Mic idle · say “demo”, “camera”, “skeleton”</span>
+        </div>
+      </footer>
+
+      <div class="hint" id="hint">
+        Raise both hands in front of the camera, or stay in Demo to see all 10 pointers.
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
