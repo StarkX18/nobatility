@@ -6,7 +6,7 @@ import {
   primaryIndex,
   saveCalibration,
 } from "./calibration";
-import { calibrationGuideHands } from "./hands/guideHands";
+import { calibrationGuideHands, CORNER_AIMS } from "./hands/guideHands";
 import { demoFrame } from "./hands/demoHands";
 import { MediaPipeHands } from "./hands/mediapipeTracker";
 import { DEFAULT_MAP, screenToLandmark, type ScreenMap } from "./mapping";
@@ -36,6 +36,7 @@ const btnMirror = document.querySelector("#btn-mirror")!;
 const btnVoice = document.querySelector("#btn-voice")!;
 const btnCalibrate = document.querySelector("#btn-calibrate")!;
 const btnResetCal = document.querySelector("#btn-reset-cal")!;
+const btnDistance = document.querySelector("#btn-distance")!;
 
 const map: ScreenMap = { ...DEFAULT_MAP };
 let source: "demo" | "camera" = "demo";
@@ -47,6 +48,13 @@ let trackerLoading = false;
 let lastHands: TrackedHand[] = [];
 let lastTs = performance.now();
 let fps = 0;
+let demoScale = 0.24;
+const DISTANCES = [
+  { id: "far", scale: 0.13, label: "Far" },
+  { id: "mid", scale: 0.24, label: "Mid" },
+  { id: "near", scale: 0.4, label: "Near" },
+] as const;
+let distanceIndex = 1;
 let savedHomography = map.homography ?? null;
 const voice = new VoiceListener();
 const session = new CalibrationSession();
@@ -142,14 +150,21 @@ function onCalEvent(kind: string): void {
   if (kind === "complete" && session.result) {
     map.homography = session.result;
     savedHomography = session.result;
-    saveCalibration({ version: 1, pairs: session.pairs, homography: session.result });
+    saveCalibration({ version: 2, kind: "aim", pairs: session.pairs, homography: session.result });
     overlay.clearTrails();
-    voiceText.textContent = "Calibrated — your reach now maps to this display.";
+    voiceText.textContent = "Calibrated — same aim works near or far. Walk around; don’t redo the corners.";
   }
   if (kind === "failed") {
     map.homography = savedHomography;
     voiceText.textContent = session.lastError ?? "Calibration failed.";
   }
+  syncButtons();
+}
+
+function cycleDistance(): void {
+  distanceIndex = (distanceIndex + 1) % DISTANCES.length;
+  demoScale = DISTANCES[distanceIndex]!.scale;
+  overlay.clearTrails();
   syncButtons();
 }
 
@@ -172,7 +187,8 @@ function syncButtons(): void {
   btnCalibrate.classList.toggle("active", session.running);
   btnCalibrate.textContent = session.running ? "Cancel" : "Calibrate";
   statsSource.textContent = trackerLoading ? "loading model" : source;
-  statsCal.textContent = map.homography ? "fitted to display" : "default map";
+  statsCal.textContent = map.homography ? "aim fit · any distance" : "default map";
+  btnDistance.textContent = `Distance: ${DISTANCES[distanceIndex]!.label}`;
   document.body.classList.toggle("calibrating", session.running);
 }
 
@@ -188,7 +204,7 @@ function applyCommand(cmd: string): void {
   }
   if (cmd === "cancel" && session.running) cancelCalibration();
   if (cmd === "next" && session.running) {
-    onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))));
+    onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))?.aim ?? null));
   }
   if (cmd === "reset-cal") resetCalibration();
   syncButtons();
@@ -213,6 +229,7 @@ btnCalibrate.addEventListener("click", () => {
   else startCalibration();
 });
 btnResetCal.addEventListener("click", () => resetCalibration());
+btnDistance.addEventListener("click", () => cycleDistance());
 btnVoice.addEventListener("click", () => {
   if (voice.status === "listening") {
     voice.stop();
@@ -248,7 +265,7 @@ canvas.addEventListener("click", (ev) => {
   const tx = target.nx * rect.width;
   const ty = target.ny * rect.height;
   if (Math.hypot(x - tx, y - ty) > 64) return;
-  onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))));
+  onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))?.aim ?? null));
 });
 
 window.addEventListener("keydown", (e) => {
@@ -258,14 +275,14 @@ window.addEventListener("keydown", (e) => {
   }
   if (e.key === " " && session.running) {
     e.preventDefault();
-    onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))));
+    onCalEvent(session.confirm(primaryIndex(pointersFromHands(lastHands))?.aim ?? null));
     return;
   }
   if (e.key === "k") {
     if (session.running) cancelCalibration();
     else startCalibration();
   }
-  if (e.key === "d") stopCamera();
+  if (e.key === "f") cycleDistance();
   if (e.key === "c") void startCamera();
   if (e.key === "s") {
     showSkeleton = !showSkeleton;
@@ -297,9 +314,10 @@ function tick(now: number): void {
           inset: 0.28,
         })
       : { x: 0.5, y: 0.5 };
-    hands = calibrationGuideHands(src);
+    const aim = CORNER_AIMS[session.step] ?? CORNER_AIMS[0]!;
+    hands = calibrationGuideHands(src, aim);
   } else if (source === "demo") {
-    hands = demoFrame(t);
+    hands = demoFrame(t, demoScale);
   } else if (tracker && !trackerLoading) {
     const detected = tracker.detect(video, t);
     if (detected.length) lastHands = detected;
@@ -311,7 +329,7 @@ function tick(now: number): void {
 
   if (session.running) {
     const index = primaryIndex(pointers);
-    onCalEvent(session.update(index, dt, Boolean(index?.pinch)));
+    onCalEvent(session.update(index?.aim ?? null, dt, Boolean(index?.pinch)));
   }
 
   const state: FrameState = {

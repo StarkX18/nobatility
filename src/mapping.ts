@@ -1,11 +1,12 @@
 import { applyHomography, computeHomography, type Homography } from "./homography";
-import type { Vec2 } from "./types";
+import { fingerAim } from "./pointing";
+import { TIP_INDEX, type TrackedHand, type Vec2 } from "./types";
 
 export interface ScreenMap {
   mirrorX: boolean;
   /** Crop of normalized camera space used as the playable reach (uncalibrated). */
   inset: number;
-  /** Camera (0..1) → screen (0..1). When set, inset/mirror are not used to project. */
+  /** Index-finger aim (MCP→tip) → screen (0..1). Distance-invariant. */
   homography?: Homography | null;
 }
 
@@ -60,8 +61,39 @@ export function screenToLandmark(
   };
 }
 
-export function mapFromHomography(H: Homography, mirrorX = true): ScreenMap {
-  return { mirrorX, inset: DEFAULT_MAP.inset, homography: H };
+export function aimToScreen(aim: Vec2, width: number, height: number, map: ScreenMap): Vec2 {
+  if (!map.homography) return { x: width / 2, y: height / 2 };
+  const mapped = applyHomography(map.homography, aim);
+  if (!mapped) return { x: width / 2, y: height / 2 };
+  return {
+    x: clamp(mapped.x, -0.05, 1.05) * width,
+    y: clamp(mapped.y, -0.05, 1.05) * height,
+  };
+}
+
+/**
+ * When fitted, the hand cluster follows index *aim* (where you point),
+ * and the other joints ride as a scale-normalized shape around that tip —
+ * so walking closer or farther does not move the pointers.
+ */
+export function projectHand(hand: TrackedHand, width: number, height: number, map: ScreenMap): Vec2[] {
+  if (!map.homography) {
+    return hand.landmarks.map((lm) => landmarkToScreen(lm, width, height, map));
+  }
+
+  const aim = fingerAim(hand, "index") ?? { x: 0, y: 0 };
+  const origin = aimToScreen(aim, width, height, map);
+  const tip = hand.landmarks[TIP_INDEX.index] ?? hand.landmarks[0];
+  const wrist = hand.landmarks[0];
+  const size = Math.max(
+    1e-4,
+    Math.hypot((tip?.x ?? 0) - (wrist?.x ?? 0), (tip?.y ?? 0) - (wrist?.y ?? 0)),
+  );
+  const px = Math.min(width, height) * 0.2;
+  return hand.landmarks.map((lm) => ({
+    x: origin.x + ((lm.x - (tip?.x ?? 0)) / size) * px,
+    y: origin.y + ((lm.y - (tip?.y ?? 0)) / size) * px,
+  }));
 }
 
 function remap(v: number, in0: number, in1: number, out0: number, out1: number): number {

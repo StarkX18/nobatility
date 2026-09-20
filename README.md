@@ -6,7 +6,7 @@ Far-field **finger + voice** overlay for a Mac. Not a single cursor: up to **ten
 
 - **Demo mode** — two kinematic hands, all 10 named pointers, no camera required
 - **Camera mode** — MediaPipe Hand Landmarker, 21 points per hand, two hands
-- **Calibration** — point your index at four on-screen marks and hold; we solve a homography from camera space onto this window and remember it
+- **Calibration** — aim your index at four marks once; we fit **pointing direction** so the same pose works near or far
 - **Overlay** — per-finger color, labels, trails, pinch rings
 - **Voice** — “calibrate”, “demo”, “camera”, “skeleton”, “trails”, “mirror”, “reset calibration”
 - **Smoothing** — One Euro filter on live landmarks
@@ -25,21 +25,28 @@ npm run dev
 
 Fullscreen the tab (`Control-Command-F`). Stand where you’ll actually use it, hit **Camera**, then **Calibrate**.
 
-### Fit the display
+### Fit once, then walk around
 
-Uncalibrated mapping is only a selfie-mirror plus a guessed inset — it will not match your distance or screen. Calibration is the Head Pointer trick:
+Uncalibrated mapping is a selfie-mirror plus a guessed inset — it follows **where the hand sits in the webcam frame**, so it breaks when you step closer or farther.
 
-1. Four marks appear: top-left, top-right, bottom-right, bottom-left.
-2. Point your **index finger** at the glow (from your seat, as if touching that corner) and **hold still** ~1s. Pinch, click the mark, or press `Space` to lock early.
-3. After four corners, a homography maps that reach onto the window. Status reads **fitted to display**. Saved in `localStorage`.
+Calibration records **where the index finger is aiming** (MCP → tip in 3D), not the blob’s pixel. Head Pointer does the same idea with head *orientation*. After four corners:
 
-In **Demo**, the wizard parks a right index on each mark so you can see the flow without a camera.
+1. Status reads **aim fit · any distance**.
+2. Walking toward or away from the display should not require a redo — same pointing pose, same screen spot.
+3. Demo **Distance: Far / Mid / Near** (key `f`) only changes how large the hands are in the frame so you can see that.
+
+Pixel-homography saves from the previous build (`calibration.v1`) are ignored; fit again once.
+
+1. Four marks: top-left, top-right, bottom-right, bottom-left.
+2. **Aim** your index at the glow and hold ~1s (`Space` or click to lock).
+3. Saved in `localStorage`. **Reset fit** to clear.
 
 | Key | Action |
 | --- | --- |
 | `k` | Calibrate / cancel |
 | `Space` | Lock current corner |
 | `Escape` | Cancel calibration |
+| `f` | Demo distance (far / mid / near) |
 | `d` | Demo |
 | `c` | Camera |
 | `s` / `t` / `m` | Skeleton / trails / mirror |
@@ -55,7 +62,7 @@ Everything runs **on device**.
 | Face / head pose | Hands, 21 landmarks each |
 | One pointer | Ten fingertip pointers |
 | System-wide accessibility cursor | In-page overlay (no event injection yet) |
-| Move to each edge / corner | Index dwell on four marks → homography |
+| Move to each edge / corner | Aim index at four marks (3D bone, not pixels) |
 | Heavy smoothing | One Euro on each landmark |
 
 ## What it would take to actually drive the Mac

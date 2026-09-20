@@ -1,8 +1,9 @@
 import type { CalibrationView } from "../calibration";
-import { landmarkToScreen, type ScreenMap } from "../mapping";
+import { projectHand, type ScreenMap } from "../mapping";
 import {
   FINGER_NAMES,
   SKELETON_EDGES,
+  TIP_INDEX,
   type FingerName,
   type FingerPointer,
   type FrameState,
@@ -48,21 +49,26 @@ export class OverlayRenderer {
     this.vignette(width, height);
 
     for (const hand of state.hands) {
-      const pts = hand.landmarks.map((lm) => landmarkToScreen(lm, width, height, map));
+      const pts = projectHand(hand, width, height, map);
       if (flags.skeleton) this.drawSkeleton(pts, hand.side);
       this.drawPalm(pts[0], hand.side);
-    }
 
-    for (const pointer of state.pointers) {
-      const p = landmarkToScreen(pointer, width, height, map);
-      if (flags.trails) this.pushTrail(pointer.id, p.x, p.y);
+      const tips = state.pointers.filter((p) => p.side === hand.side);
+      for (const pointer of tips) {
+        const joint = TIP_INDEX[pointer.finger];
+        const p = pts[joint];
+        if (p && flags.trails) this.pushTrail(pointer.id, p.x, p.y);
+      }
     }
 
     if (flags.trails) this.drawTrails();
 
-    for (const pointer of state.pointers) {
-      const p = landmarkToScreen(pointer, width, height, map);
-      this.drawPointer(pointer, p.x, p.y, state.t);
+    for (const hand of state.hands) {
+      const pts = projectHand(hand, width, height, map);
+      for (const pointer of state.pointers.filter((p) => p.side === hand.side)) {
+        const p = pts[TIP_INDEX[pointer.finger]];
+        if (p) this.drawPointer(pointer, p.x, p.y, state.t);
+      }
     }
 
     if (calibration?.running) this.drawCalibration(calibration, width, height, state.t);

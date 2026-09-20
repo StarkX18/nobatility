@@ -58,7 +58,7 @@ describe("calibration storage", () => {
       { src: { x: 0.22, y: 0.77 }, dst: { x: CAL_TARGETS[3]!.nx, y: CAL_TARGETS[3]!.ny } },
     ];
     const H = computeHomography(pairs)!;
-    saveCalibration({ version: 1, pairs, homography: H }, storage);
+    saveCalibration({ version: 2, kind: "aim", pairs, homography: H }, storage);
     const loaded = loadCalibration(storage);
     expect(loaded?.homography[0]).toBeCloseTo(H[0], 8);
     clearCalibration(storage);

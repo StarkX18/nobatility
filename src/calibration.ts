@@ -28,7 +28,7 @@ export interface CalibrationView {
 }
 
 const DWELL_SEC = 0.85;
-const STABLE = 0.014;
+const STABLE = 0.022;
 const HISTORY = 16;
 
 export function primaryIndex(pointers: FingerPointer[]): FingerPointer | null {
@@ -75,7 +75,7 @@ export class CalibrationSession {
     this.history = [];
   }
 
-  /** Feed the live index tip in camera 0..1 space. */
+  /** Feed the live index *aim* (MCP→tip), not the fingertip's pixel. */
   update(index: Vec2 | null, dt: number, pinch: boolean): "idle" | "sampling" | "captured" | "complete" | "failed" {
     if (!this.running) return "idle";
     if (!index) {
@@ -151,20 +151,23 @@ export class CalibrationSession {
   private message(): string {
     if (!this.running) return "";
     const t = CAL_TARGETS[this.step];
-    return `Point your index at ${t?.label ?? "the mark"} and hold still (${this.step + 1} of ${CAL_TARGETS.length})`;
+    return `Aim your index at ${t?.label ?? "the mark"} and hold (${this.step + 1} of ${CAL_TARGETS.length})`;
   }
 }
 
-const STORAGE_KEY = "nobatility.calibration.v1";
+const STORAGE_KEY = "nobatility.calibration.v2";
+const LEGACY_KEY = "nobatility.calibration.v1";
 
 export interface StoredCalibration {
-  version: 1;
+  version: 2;
+  kind: "aim";
   pairs: Pair[];
   homography: Homography;
 }
 
-export function saveCalibration(data: StoredCalibration, storage: Pick<Storage, "setItem"> = localStorage): void {
+export function saveCalibration(data: StoredCalibration, storage: Pick<Storage, "setItem" | "removeItem"> = localStorage): void {
   storage.setItem(STORAGE_KEY, JSON.stringify(data));
+  storage.removeItem(LEGACY_KEY);
 }
 
 export function loadCalibration(storage: Pick<Storage, "getItem"> = localStorage): StoredCalibration | null {
@@ -172,7 +175,7 @@ export function loadCalibration(storage: Pick<Storage, "getItem"> = localStorage
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as StoredCalibration;
-    if (parsed.version !== 1 || !parsed.homography || parsed.pairs?.length < 4) return null;
+    if (parsed.version !== 2 || parsed.kind !== "aim" || !parsed.homography || parsed.pairs?.length < 4) return null;
     const err = reprojectionError(parsed.homography, parsed.pairs);
     if (err > 0.05) return null;
     return parsed;
@@ -183,4 +186,5 @@ export function loadCalibration(storage: Pick<Storage, "getItem"> = localStorage
 
 export function clearCalibration(storage: Pick<Storage, "removeItem"> = localStorage): void {
   storage.removeItem(STORAGE_KEY);
+  storage.removeItem(LEGACY_KEY);
 }
