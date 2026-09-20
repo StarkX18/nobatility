@@ -29,7 +29,7 @@ export function kinematicHand(
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);
   const rot = (dx: number, dy: number, dz = 0): Landmark =>
-    lm(palm.x + (dx * cos - dy * sin) * scale, palm.y + (dx * sin + dy * cos) * scale, dz);
+    lm(palm.x + (dx * cos - dy * sin) * scale, palm.y + (dx * sin + dy * cos) * scale, dz * scale);
 
   const wrist = rot(0, 0.42, 0);
   const landmarks: Landmark[] = new Array(21);

@@ -50,11 +50,11 @@ let lastTs = performance.now();
 let fps = 0;
 let demoScale = 0.24;
 const DISTANCES = [
-  { id: "far", scale: 0.13, label: "Far" },
   { id: "mid", scale: 0.24, label: "Mid" },
+  { id: "far", scale: 0.13, label: "Far" },
   { id: "near", scale: 0.4, label: "Near" },
 ] as const;
-let distanceIndex = 1;
+let distanceIndex = 0;
 let savedHomography = map.homography ?? null;
 const voice = new VoiceListener();
 const session = new CalibrationSession();
