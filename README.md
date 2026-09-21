@@ -2,6 +2,8 @@
 
 Far-field **finger + voice** overlay for a Mac. Not a single cursor: up to **ten fingertip pointers**, skeletons, trails, voice, and a **4-corner display fit** in the same family as Apple Head Pointer.
 
+![Ten labeled fingertip pointers on two hands](docs/screenshots/ten_pointers.png)
+
 ## What you get today
 
 - **Demo mode** — two kinematic hands, all 10 named pointers, no camera required
@@ -10,6 +12,8 @@ Far-field **finger + voice** overlay for a Mac. Not a single cursor: up to **ten
 - **Overlay** — per-finger color, labels, trails, pinch rings
 - **Voice** — “calibrate”, “demo”, “camera”, “skeleton”, “trails”, “mirror”, “reset calibration”
 - **Smoothing** — One Euro filter on live landmarks
+
+![Pointers with skeleton hidden](docs/screenshots/pointers_only.png)
 
 Controlling Finder, clicking, dragging, and accessibility APIs are still out of scope.
 
@@ -40,6 +44,16 @@ Pixel-homography saves from the previous build (`calibration.v1`) are ignored; f
 1. Four marks: top-left, top-right, bottom-right, bottom-left.
 2. **Aim** your index at the glow and hold ~1s (`Space` or click to lock).
 3. Saved in `localStorage`. **Reset fit** to clear.
+
+![Calibration mark: top left](docs/screenshots/calibrate_top_left.png)
+
+![Calibration mark: top right after the first lock](docs/screenshots/calibrate_top_right.png)
+
+After a fit, Demo **Distance** only changes how large the hands are in the frame; the pointers stay put:
+
+![Aim fit at mid demo distance](docs/screenshots/aim_fit_mid.png)
+
+![Aim fit at near demo distance](docs/screenshots/aim_fit_near.png)
 
 | Key | Action |
 | --- | --- |
@@ -82,4 +96,5 @@ src/calibration.ts  dwell session + localStorage
 src/homography.ts   4-point DLT
 src/mapping.ts      default inset map or fitted homography
 src/voice/
+docs/screenshots/  README captures
 ```
