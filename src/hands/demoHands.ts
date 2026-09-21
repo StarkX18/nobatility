@@ -29,7 +29,7 @@ export function kinematicHand(
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);
   const rot = (dx: number, dy: number, dz = 0): Landmark =>
-    lm(palm.x + (dx * cos - dy * sin) * scale, palm.y + (dx * sin + dy * cos) * scale, dz * scale);
+    lm(palm.x + (dx * cos - dy * sin) * scale, palm.y + (dx * sin + dy * cos) * scale, dz);
 
   const wrist = rot(0, 0.42, 0);
   const landmarks: Landmark[] = new Array(21);
@@ -59,19 +59,10 @@ export function kinematicHand(
     }
   }
 
-  return { side, landmarks: landmarks as Landmark[], world: localWorld(landmarks, palm, scale), score: 0.99 };
+  return { side, landmarks: landmarks as Landmark[], score: 0.99 };
 }
 
-function localWorld(landmarks: Landmark[], palm: { x: number; y: number }, scale: number): Landmark[] {
-  const s = Math.max(1e-6, scale);
-  return landmarks.map((lm) => ({
-    x: (lm.x - palm.x) / s,
-    y: (lm.y - palm.y) / s,
-    z: lm.z / s,
-  }));
-}
-
-export function demoFrame(t: number, scale = 0.24): TrackedHand[] {
+export function demoFrame(t: number): TrackedHand[] {
   const breathe = Math.sin(t * 1.1) * 0.03;
   const orbit = t * 0.35;
 
@@ -85,7 +76,7 @@ export function demoFrame(t: number, scale = 0.24): TrackedHand[] {
       curl: 0.08 + Math.max(0, Math.sin(t * 0.9)) * 0.35,
       wave: t * 2.2,
       yaw: -0.18 + Math.sin(t * 0.6) * 0.08,
-      scale,
+      scale: 0.24,
     },
   );
 
@@ -97,7 +88,7 @@ export function demoFrame(t: number, scale = 0.24): TrackedHand[] {
       curl: 0.05 + Math.max(0, Math.sin(t * 1.3 + 1)) * 0.5,
       wave: t * 1.8 + 1.2,
       yaw: 0.2 + Math.cos(t * 0.5) * 0.1,
-      scale: scale * 1.04,
+      scale: 0.25,
     },
   );
 

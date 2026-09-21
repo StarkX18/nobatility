@@ -1,9 +1,7 @@
-import type { CalibrationView } from "../calibration";
-import { projectHand, type ScreenMap } from "../mapping";
+import { landmarkToScreen, type ScreenMap } from "../mapping";
 import {
   FINGER_NAMES,
   SKELETON_EDGES,
-  TIP_INDEX,
   type FingerName,
   type FingerPointer,
   type FrameState,
@@ -35,97 +33,30 @@ export class OverlayRenderer {
 
   constructor(private ctx: CanvasRenderingContext2D) {}
 
-  draw(
-    state: FrameState,
-    map: ScreenMap,
-    flags: { skeleton: boolean; trails: boolean },
-    calibration?: CalibrationView,
-  ): void {
+  draw(state: FrameState, map: ScreenMap, flags: { skeleton: boolean; trails: boolean }): void {
     const { ctx } = this;
-    const width = ctx.canvas.clientWidth || ctx.canvas.width;
-    const height = ctx.canvas.clientHeight || ctx.canvas.height;
+    const { width, height } = ctx.canvas;
     ctx.clearRect(0, 0, width, height);
 
     this.vignette(width, height);
 
     for (const hand of state.hands) {
-      const pts = projectHand(hand, width, height, map);
+      const pts = hand.landmarks.map((lm) => landmarkToScreen(lm, width, height, map));
       if (flags.skeleton) this.drawSkeleton(pts, hand.side);
       this.drawPalm(pts[0], hand.side);
+    }
 
-      const tips = state.pointers.filter((p) => p.side === hand.side);
-      for (const pointer of tips) {
-        const joint = TIP_INDEX[pointer.finger];
-        const p = pts[joint];
-        if (p && flags.trails) this.pushTrail(pointer.id, p.x, p.y);
-      }
+    for (const pointer of state.pointers) {
+      const p = landmarkToScreen(pointer, width, height, map);
+      if (flags.trails) this.pushTrail(pointer.id, p.x, p.y);
     }
 
     if (flags.trails) this.drawTrails();
 
-    for (const hand of state.hands) {
-      const pts = projectHand(hand, width, height, map);
-      for (const pointer of state.pointers.filter((p) => p.side === hand.side)) {
-        const p = pts[TIP_INDEX[pointer.finger]];
-        if (p) this.drawPointer(pointer, p.x, p.y, state.t);
-      }
+    for (const pointer of state.pointers) {
+      const p = landmarkToScreen(pointer, width, height, map);
+      this.drawPointer(pointer, p.x, p.y, state.t);
     }
-
-    if (calibration?.running) this.drawCalibration(calibration, width, height, state.t);
-  }
-
-  clearTrails(): void {
-    this.trails.clear();
-    this.appear.clear();
-  }
-
-  private drawCalibration(cal: CalibrationView, width: number, height: number, t: number): void {
-    const ctx = this.ctx;
-    ctx.fillStyle = "rgba(4, 6, 12, 0.28)";
-    ctx.fillRect(0, 0, width, height);
-
-    for (const target of cal.targets) {
-      const x = target.nx * width;
-      const y = target.ny * height;
-      const active = target.state === "active";
-      const done = target.state === "done";
-      const pulse = 1 + 0.08 * Math.sin(t * 6);
-      const r = (active ? 34 : 16) * (active ? pulse : 1);
-
-      ctx.beginPath();
-      ctx.arc(x, y, r * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = active ? "rgba(255, 200, 120, 0.16)" : "rgba(255,255,255,0.03)";
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.strokeStyle = done ? "rgba(93, 255, 159, 0.9)" : active ? "rgba(255, 210, 140, 0.95)" : "rgba(255,255,255,0.25)";
-      ctx.lineWidth = active ? 3 : 1.5;
-      ctx.stroke();
-
-      if (active && cal.dwell > 0) {
-        ctx.beginPath();
-        ctx.arc(x, y, r + 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, cal.dwell));
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = done ? "#5dff9f" : "#fff8ee";
-      ctx.fill();
-
-      ctx.font = "600 13px 'Avenir Next', 'Segoe UI', sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.82)";
-      ctx.textAlign = "center";
-      ctx.fillText(target.label, x, y + r + 22);
-    }
-
-    ctx.font = "500 15px 'Avenir Next', 'Segoe UI', sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.textAlign = "center";
-    ctx.fillText(cal.message, width / 2, height * 0.5);
   }
 
   private vignette(w: number, h: number): void {

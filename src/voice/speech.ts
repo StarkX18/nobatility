@@ -89,9 +89,5 @@ export function parseVoiceCommand(text: string): string | null {
   if (/\b(skeleton|bones)\b/.test(t)) return "toggle-skeleton";
   if (/\b(trail)s?\b/.test(t)) return "toggle-trails";
   if (/\bmirror\b/.test(t)) return "toggle-mirror";
-  if (/\breset (calibrat|fit)/.test(t) || /\buncalibrat/.test(t)) return "reset-cal";
-  if (/\bcancel\b/.test(t) || /\bstop calibrat/.test(t)) return "cancel";
-  if (/\bcalibrat/.test(t) || /\bfit (the )?(screen|display)\b/.test(t)) return "calibrate";
-  if (/\b(next|confirm|got it)\b/.test(t)) return "next";
   return null;
 }

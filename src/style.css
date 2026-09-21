@@ -212,15 +212,6 @@ button.active {
   display: none;
 }
 
-body.calibrating .left-legend,
-body.calibrating .hint {
-  display: none;
-}
-
-body.calibrating #camera {
-  opacity: 0.35;
-}
-
 @media (max-width: 720px) {
   #camera {
     width: 140px;

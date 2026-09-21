@@ -16,14 +16,13 @@
           <span class="mark"></span>
           <div>
             <strong>Nobatility</strong>
-            <p>Ten fingertip pointers · aim once, any distance</p>
+            <p>Ten fingertip pointers · camera + voice MVP</p>
           </div>
         </div>
         <div class="stats" id="stats">
           <span data-testid="fps">— fps</span>
           <span data-testid="hand-count">0 hands</span>
           <span data-testid="source">demo</span>
-          <span data-testid="cal-status">default map</span>
         </div>
       </header>
 
@@ -36,19 +35,16 @@
           <button type="button" id="btn-skeleton" data-testid="btn-skeleton" class="active">Skeleton</button>
           <button type="button" id="btn-trails" class="active">Trails</button>
           <button type="button" id="btn-mirror" class="active">Mirror</button>
-          <button type="button" id="btn-calibrate" data-testid="btn-calibrate">Calibrate</button>
-          <button type="button" id="btn-reset-cal" data-testid="btn-reset-cal">Reset fit</button>
-          <button type="button" id="btn-distance" data-testid="btn-distance">Distance: Mid</button>
           <button type="button" id="btn-voice" data-testid="btn-voice">Voice</button>
         </div>
         <div class="voice-pill" id="voice-pill" data-testid="voice-pill">
           <span class="dot"></span>
-          <span id="voice-text">Mic idle · say “calibrate”, “demo”, “camera”</span>
+          <span id="voice-text">Mic idle · say “demo”, “camera”, “skeleton”</span>
         </div>
       </footer>
 
       <div class="hint" id="hint">
-        Aim your index at each glow once. After that, walk closer or farther — same mapping.
+        Raise both hands in front of the camera, or stay in Demo to see all 10 pointers.
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
