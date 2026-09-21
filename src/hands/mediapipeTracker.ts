@@ -53,9 +53,18 @@ export class MediaPipeHands {
         raw.map((p) => ({ x: p.x, y: p.y, z: p.z })),
         t,
       );
+      const worldRaw = result.worldLandmarks[i];
+      const world = worldRaw
+        ? this.smoother.smoothHand(
+            `world-${side}-${i}`,
+            worldRaw.map((p) => ({ x: p.x, y: p.y, z: p.z })),
+            t,
+          )
+        : undefined;
       hands.push({
         side,
         landmarks: smoothed,
+        world,
         score: handed?.score ?? 0,
       });
     }

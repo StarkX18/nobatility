@@ -1,22 +1,25 @@
 # Nobatility
 
-Far-field **finger + voice** overlay for a Mac. This MVP is not a single cursor. It draws **up to ten fingertip pointers** (five per hand), skeletons, motion trails, and a voice layer you can grow into real control later.
+Far-field **finger + voice** overlay for a Mac. Not a single cursor: up to **ten fingertip pointers**, skeletons, trails, voice, and a **4-corner display fit** in the same family as Apple Head Pointer.
 
-Apple Head Pointer feels great because of three unglamorous pieces: a stable tracker, a calibration map from sensor space to screen space, and a lag-vs-jitter filter. This project copies that shape for hands.
+![Ten labeled fingertip pointers on two hands](docs/screenshots/ten_pointers.png)
 
 ## What you get today
 
 - **Demo mode** — two kinematic hands, all 10 named pointers, no camera required
 - **Camera mode** — MediaPipe Hand Landmarker, 21 points per hand, two hands
-- **Overlay** — per-finger color, labels (`L index`, `R thumb`…), trails, pinch rings
-- **Voice** — Web Speech API; say “demo”, “camera”, “skeleton”, “trails”, “mirror”
-- **Smoothing** — One Euro filter on live landmarks (same family of filter Head Pointer-style pointers use)
+- **Calibration** — aim your index at four marks once; we fit **pointing direction** so the same pose works near or far
+- **Overlay** — per-finger color, labels, trails, pinch rings
+- **Voice** — “calibrate”, “demo”, “camera”, “skeleton”, “trails”, “mirror”, “reset calibration”
+- **Smoothing** — One Euro filter on live landmarks
 
-Controlling Finder, clicking, dragging, and accessibility APIs are **explicitly out of this MVP**. The overlay is the foundation.
+![Pointers with skeleton hidden](docs/screenshots/pointers_only.png)
+
+Controlling Finder, clicking, dragging, and accessibility APIs are still out of scope.
 
 ## Run it on your Mac
 
-Needs a current Chrome or Edge build (MediaPipe WASM + WebGPU/WebGL). Safari can run **demo** today; live hands need a Chromium browser until Apple ships the same WASM path cleanly.
+Chrome or Edge (MediaPipe WASM). Safari can run **demo** and calibration; live hands want Chromium.
 
 ```bash
 npm install
@@ -24,45 +27,74 @@ npm test
 npm run dev
 ```
 
-Open the printed localhost URL, fullscreen the tab (`Control-Command-F`), stand back, hit **Camera**, allow the webcam.
+Fullscreen the tab (`Control-Command-F`). Stand where you’ll actually use it, hit **Camera**, then **Calibrate**.
+
+### Fit once, then walk around
+
+Uncalibrated mapping is a selfie-mirror plus a guessed inset — it follows **where the hand sits in the webcam frame**, so it breaks when you step closer or farther.
+
+Calibration records **where the index finger is aiming** (MCP → tip in 3D), not the blob’s pixel. Head Pointer does the same idea with head *orientation*. After four corners:
+
+1. Status reads **aim fit · any distance**.
+2. Walking toward or away from the display should not require a redo — same pointing pose, same screen spot.
+3. Demo **Distance: Far / Mid / Near** (key `f`) only changes how large the hands are in the frame so you can see that.
+
+Pixel-homography saves from the previous build (`calibration.v1`) are ignored; fit again once.
+
+1. Four marks: top-left, top-right, bottom-right, bottom-left.
+2. **Aim** your index at the glow and hold ~1s (`Space` or click to lock).
+3. Saved in `localStorage`. **Reset fit** to clear.
+
+![Calibration mark: top left](docs/screenshots/calibrate_top_left.png)
+
+![Calibration mark: top right after the first lock](docs/screenshots/calibrate_top_right.png)
+
+After a fit, Demo **Distance** only changes how large the hands are in the frame; the pointers stay put:
+
+![Aim fit at mid demo distance](docs/screenshots/aim_fit_mid.png)
+
+![Aim fit at near demo distance](docs/screenshots/aim_fit_near.png)
 
 | Key | Action |
 | --- | --- |
+| `k` | Calibrate / cancel |
+| `Space` | Lock current corner |
+| `Escape` | Cancel calibration |
+| `f` | Demo distance (far / mid / near) |
 | `d` | Demo |
 | `c` | Camera |
-| `s` | Skeleton |
-| `t` | Trails |
-| `m` | Mirror |
+| `s` / `t` / `m` | Skeleton / trails / mirror |
 
-Everything runs **on device**. The camera never leaves the machine; MediaPipe runs in the page.
+**Reset fit** returns to the default inset map.
+
+Everything runs **on device**.
 
 ## How this compares to Head Pointer
 
-| Head Pointer | This MVP |
+| Head Pointer | This |
 | --- | --- |
 | Face / head pose | Hands, 21 landmarks each |
 | One pointer | Ten fingertip pointers |
 | System-wide accessibility cursor | In-page overlay (no event injection yet) |
-| Calibration rectangle | Mirror + inset reach map (replace with a 4-point calibration next) |
+| Move to each edge / corner | Aim index at four marks (3D bone, not pixels) |
 | Heavy smoothing | One Euro on each landmark |
 
 ## What it would take to actually drive the Mac
 
-1. **Native overlay** — `NSPanel` / `NSWindow` with `collectionBehavior` `.canJoinAllSpaces`, `.fullScreenAuxiliary`, `ignoresMouseEvents = true`, above all spaces.
-2. **Vision** — `VNDetectHumanHandPoseRequest` (same 21-point graph) instead of the browser model, or keep MediaPipe in a small helper process.
-3. **Calibration** — hold an index finger on four on-screen targets; solve an affine or homography from camera to display. This is the Head Pointer trick.
-4. **Control policy** — do **not** map every fingertip to a mouse. Pick one (usually dominant index), use pinch as click, two-index distance as zoom, and keep the other eight as visual only / gestures.
-5. **Voice** — `SFSpeechRecognizer` or the same Web Speech loop, then map phrases onto Accessibility / AppleScript / `CGEvent`.
-6. **Permissions** — Camera, Microphone, Accessibility (for posting clicks). TCC prompts are the real installer.
-
-Until those exist, treat this as the **animation and tracking stage**.
+1. **Native overlay** — `NSPanel` over all Spaces, click-through.
+2. **Vision** — `VNDetectHumanHandPoseRequest`, or keep MediaPipe in a helper.
+3. **Control policy** — dominant index = pointer, pinch = click; other eight stay visual/gestures.
+4. **Voice** — `SFSpeechRecognizer` → Accessibility / `CGEvent`.
+5. **Permissions** — Camera, Microphone, Accessibility.
 
 ## Repo layout
 
 ```
-src/hands/     demo + MediaPipe tracker
-src/render/    canvas overlay
-src/voice/     speech + command parse
-src/smoothing.ts
-src/mapping.ts
+src/hands/          demo, MediaPipe, calibration guide pose
+src/render/         canvas overlay + corner marks
+src/calibration.ts  dwell session + localStorage
+src/homography.ts   4-point DLT
+src/mapping.ts      default inset map or fitted homography
+src/voice/
+docs/screenshots/  README captures
 ```
