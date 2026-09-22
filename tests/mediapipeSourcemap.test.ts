@@ -14,6 +14,17 @@ describe("stripSourceMappingUrl", () => {
     expect(stripSourceMappingUrl(src)).not.toContain("sourceMappingURL");
   });
 
+  it("clears the real tasks-vision bundle footer", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { fileURLToPath } = await import("node:url");
+    const bundle = fileURLToPath(
+      new URL("../node_modules/@mediapipe/tasks-vision/vision_bundle.mjs", import.meta.url),
+    );
+    const src = await readFile(bundle, "utf8");
+    expect(src).toContain("sourceMappingURL=vision_bundle_mjs.js.map");
+    expect(stripSourceMappingUrl(src)).not.toContain("sourceMappingURL");
+  });
+
   it("strips the //@ form as well", () => {
     expect(stripSourceMappingUrl("code\n//@ sourceMappingURL=x.js.map")).toBe("code\n");
   });

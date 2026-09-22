@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import {
   EMPTY_SOURCEMAP,
@@ -17,12 +18,12 @@ function mediapipeMissingSourcemapPlugin(): Plugin {
     enforce: "pre",
     load(id) {
       if (isMediapipeSourceMap(id)) return EMPTY_SOURCEMAP;
-    },
-    transform(code, id) {
       if (!isMediapipeBundle(id)) return;
-      const next = stripSourceMappingUrl(code);
-      if (next === code) return;
-      return { code: next, map: null };
+      const file = id.split("?")[0];
+      if (!file) return;
+      // Returning stripped code skips Vite's fs path, which otherwise follows
+      // sourceMappingURL into extractSourcemapFromFile and ENOENT.
+      return stripSourceMappingUrl(readFileSync(file, "utf8"));
     },
   };
 }
