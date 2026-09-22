@@ -1,5 +1,5 @@
 import { demoFrame } from "./hands/demoHands";
-import { MediaPipeHands } from "./hands/mediapipeTracker";
+import type { MediaPipeHands } from "./hands/mediapipeTracker";
 import { DEFAULT_MAP, type ScreenMap } from "./mapping";
 import { OverlayRenderer } from "./render/overlay";
 import { FINGER_NAMES, pointersFromHands, type FrameState, type TrackedHand } from "./types";
@@ -60,6 +60,13 @@ function resize(): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+function releaseCamera(): void {
+  const stream = video.srcObject as MediaStream | null;
+  stream?.getTracks().forEach((t) => t.stop());
+  video.srcObject = null;
+  video.classList.remove("live");
+}
+
 async function startCamera(): Promise<void> {
   cameraError = "";
   try {
@@ -72,28 +79,32 @@ async function startCamera(): Promise<void> {
     video.classList.add("live");
     if (!tracker) {
       trackerLoading = true;
-      tracker = new MediaPipeHands();
-      await tracker.load();
-      trackerLoading = false;
+      syncButtons();
+      try {
+        const { MediaPipeHands } = await import("./hands/mediapipeTracker");
+        const next = new MediaPipeHands();
+        await next.load();
+        tracker = next;
+      } finally {
+        trackerLoading = false;
+      }
     } else {
       tracker.reset();
     }
     source = "camera";
+    lastHands = [];
     syncButtons();
   } catch (err) {
     cameraError = err instanceof Error ? err.message : "Camera failed";
+    releaseCamera();
     source = "demo";
-    video.classList.remove("live");
     syncButtons();
     voiceText.textContent = `Camera unavailable — ${cameraError}. Staying in demo.`;
   }
 }
 
 function stopCamera(): void {
-  const stream = video.srcObject as MediaStream | null;
-  stream?.getTracks().forEach((t) => t.stop());
-  video.srcObject = null;
-  video.classList.remove("live");
+  releaseCamera();
   source = "demo";
   lastHands = [];
   syncButtons();
