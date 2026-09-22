@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_SOURCEMAP,
+  cleanModuleId,
   isMediapipeBundle,
   isMediapipeSourceMap,
   stripSourceMappingUrl,
@@ -32,6 +33,12 @@ describe("mediapipe path guards", () => {
     const parsed = JSON.parse(EMPTY_SOURCEMAP) as { version: number; mappings: string };
     expect(parsed.version).toBe(3);
     expect(parsed.mappings).toBe("");
+  });
+
+  it("strips Vite query and file URL wrappers", () => {
+    const raw = "file:///Users/sid/Desktop/nobatility/node_modules/@mediapipe/tasks-vision/vision_bundle.mjs?v=1";
+    expect(isMediapipeBundle(raw)).toBe(true);
+    expect(cleanModuleId(raw).endsWith("vision_bundle.mjs")).toBe(true);
   });
 });
 
