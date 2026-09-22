@@ -112,6 +112,19 @@ body {
   border: 1px solid var(--stroke);
 }
 
+.intent {
+  position: absolute;
+  right: 18px;
+  top: 96px;
+  z-index: 4;
+  max-width: 240px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
 .left-legend {
   left: 18px;
   top: 96px;
