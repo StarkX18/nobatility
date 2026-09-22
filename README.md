@@ -1,22 +1,29 @@
 # Nobatility
 
-Far-field **finger + voice** overlay for a Mac. This MVP is not a single cursor. It draws **up to ten fingertip pointers** (five per hand), skeletons, motion trails, and a voice layer you can grow into real control later.
+Far-field **finger + voice** overlay for a Mac. Not a single cursor: ten fingertip pointers, then (on other branches) calibration, then **gesture recognition**. Controlling Netflix / Notes / a code editor is **step 4** and is not in this branch.
 
-Apple Head Pointer feels great because of three unglamorous pieces: a stable tracker, a calibration map from sensor space to screen space, and a lag-vs-jitter filter. This project copies that shape for hands.
+## Roadmap
 
-## What you get today
+1. **Hand visuals** — `main`. Ten pointers, skeleton, trails.
+2. **Calibration** — separate branch. Reverted on `main` until the fit is actually good.
+3. **This branch — recognition** — geometry does the work; **Jev** (TypeSafe System One) is only asked when the geometry is in the uncertain band. App context (Netflix / notes / code) only *names* the future action.
+4. **Use cases** — later: overlay on the real app and bind those names to hand controls.
 
-- **Demo mode** — two kinematic hands, all 10 named pointers, no camera required
-- **Camera mode** — MediaPipe Hand Landmarker, 21 points per hand, two hands
-- **Overlay** — per-finger color, labels (`L index`, `R thumb`…), trails, pinch rings
-- **Voice** — Web Speech API; say “demo”, “camera”, “skeleton”, “trails”, “mirror”
-- **Smoothing** — One Euro filter on live landmarks (same family of filter Head Pointer-style pointers use)
+## Recognition (step 3)
 
-Controlling Finder, clicking, dragging, and accessibility APIs are **explicitly out of this MVP**. The overlay is the foundation.
+Every frame:
 
-## Run it on your Mac
+1. Scale-free features: pinch / hand-size, which fingers are extended.
+2. Soft scores for `pinch`, `point`, `open_palm`, `fist`, `peace`, `thumbs_up`.
+3. A 10-frame hold so a twitch is not a gesture.
+4. **Skip Jev** if confidence is high or there are no hands.
+5. **Ask Jev** only in the mid-confidence band (~2 Hz), with a compact JSON state (finger flags + top labels + app context). No API key → a local tie-break voter with the same interface.
 
-Needs a current Chrome or Edge build (MediaPipe WASM + WebGPU/WebGL). Safari can run **demo** today; live hands need a Chromium browser until Apple ships the same WASM path cleanly.
+Set `VITE_TYPESAFE_API_KEY` for live `POST https://api.typesafe.ai/v1/systemone`.
+
+Demo **Pose** (`g`) cycles pinch / point / palm / fist / peace so you can see the HUD without a camera. **App** (`a`) cycles general → netflix → notes → code and shows a preview string only.
+
+## Run
 
 ```bash
 npm install
@@ -24,45 +31,19 @@ npm test
 npm run dev
 ```
 
-Open the printed localhost URL, fullscreen the tab (`Control-Command-F`), stand back, hit **Camera**, allow the webcam.
-
 | Key | Action |
 | --- | --- |
-| `d` | Demo |
-| `c` | Camera |
-| `s` | Skeleton |
-| `t` | Trails |
-| `m` | Mirror |
-
-Everything runs **on device**. The camera never leaves the machine; MediaPipe runs in the page.
-
-## How this compares to Head Pointer
-
-| Head Pointer | This MVP |
-| --- | --- |
-| Face / head pose | Hands, 21 landmarks each |
-| One pointer | Ten fingertip pointers |
-| System-wide accessibility cursor | In-page overlay (no event injection yet) |
-| Calibration rectangle | Mirror + inset reach map (replace with a 4-point calibration next) |
-| Heavy smoothing | One Euro on each landmark |
-
-## What it would take to actually drive the Mac
-
-1. **Native overlay** — `NSPanel` / `NSWindow` with `collectionBehavior` `.canJoinAllSpaces`, `.fullScreenAuxiliary`, `ignoresMouseEvents = true`, above all spaces.
-2. **Vision** — `VNDetectHumanHandPoseRequest` (same 21-point graph) instead of the browser model, or keep MediaPipe in a small helper process.
-3. **Calibration** — hold an index finger on four on-screen targets; solve an affine or homography from camera to display. This is the Head Pointer trick.
-4. **Control policy** — do **not** map every fingertip to a mouse. Pick one (usually dominant index), use pinch as click, two-index distance as zoom, and keep the other eight as visual only / gestures.
-5. **Voice** — `SFSpeechRecognizer` or the same Web Speech loop, then map phrases onto Accessibility / AppleScript / `CGEvent`.
-6. **Permissions** — Camera, Microphone, Accessibility (for posting clicks). TCC prompts are the real installer.
-
-Until those exist, treat this as the **animation and tracking stage**.
+| `g` | Cycle demo pose |
+| `a` | Cycle app context |
+| `d` / `c` | Demo / camera |
+| `s` / `t` / `m` | Skeleton / trails / mirror |
 
 ## Repo layout
 
 ```
-src/hands/     demo + MediaPipe tracker
-src/render/    canvas overlay
-src/voice/     speech + command parse
-src/smoothing.ts
-src/mapping.ts
+src/gestures/   geometry, hold, Jev gate, engine
+src/jev/        TypeSafe client + local fallback
+src/context/    Netflix / notes / code intent previews (no control yet)
+src/hands/      demo + MediaPipe
+src/render/
 ```

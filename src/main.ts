@@ -1,4 +1,6 @@
-import { demoFrame } from "./hands/demoHands";
+import { APP_CONTEXTS, previewIntent, type AppContext } from "./context/apps";
+import { GestureEngine } from "./gestures/engine";
+import { DEMO_POSES, demoFrame, type DemoPose } from "./hands/demoHands";
 import { MediaPipeHands } from "./hands/mediapipeTracker";
 import { DEFAULT_MAP, type ScreenMap } from "./mapping";
 import { OverlayRenderer } from "./render/overlay";
@@ -13,8 +15,11 @@ const overlay = new OverlayRenderer(ctx);
 const statsFps = document.querySelector("[data-testid='fps']")!;
 const statsHands = document.querySelector("[data-testid='hand-count']")!;
 const statsSource = document.querySelector("[data-testid='source']")!;
+const statsGesture = document.querySelector("[data-testid='gesture']")!;
+const statsJev = document.querySelector("[data-testid='jev-status']")!;
 const hint = document.querySelector("#hint")!;
 const legend = document.querySelector("#legend")!;
+const intentBox = document.querySelector("#intent")!;
 const voiceText = document.querySelector("#voice-text")!;
 const voicePill = document.querySelector("#voice-pill")!;
 
@@ -24,6 +29,8 @@ const btnSkeleton = document.querySelector("#btn-skeleton")!;
 const btnTrails = document.querySelector("#btn-trails")!;
 const btnMirror = document.querySelector("#btn-mirror")!;
 const btnVoice = document.querySelector("#btn-voice")!;
+const btnPose = document.querySelector("#btn-pose")!;
+const btnContext = document.querySelector("#btn-context")!;
 
 const map: ScreenMap = { ...DEFAULT_MAP };
 let source: "demo" | "camera" = "demo";
@@ -35,7 +42,12 @@ let trackerLoading = false;
 let lastHands: TrackedHand[] = [];
 let lastTs = performance.now();
 let fps = 0;
+let demoPose: DemoPose = "live";
+let poseIndex = 0;
+let appContext: AppContext = "general";
+let contextIndex = 0;
 const voice = new VoiceListener();
+const gestures = new GestureEngine();
 
 function paintLegend(): void {
   legend.innerHTML = `<div style="opacity:.6;margin-bottom:8px">Pointers</div>`;
@@ -107,6 +119,8 @@ function syncButtons(): void {
   btnMirror.classList.toggle("active", map.mirrorX);
   btnVoice.classList.toggle("active", voice.status === "listening");
   statsSource.textContent = trackerLoading ? "loading model" : source;
+  btnPose.textContent = `Pose: ${demoPose.replace("_", " ")}`;
+  btnContext.textContent = `App: ${appContext}`;
 }
 
 function applyCommand(cmd: string): void {
@@ -115,6 +129,21 @@ function applyCommand(cmd: string): void {
   if (cmd === "toggle-skeleton") showSkeleton = !showSkeleton;
   if (cmd === "toggle-trails") showTrails = !showTrails;
   if (cmd === "toggle-mirror") map.mirrorX = !map.mirrorX;
+  if (cmd === "cycle-pose") cyclePose();
+  if (cmd === "cycle-app") cycleContext();
+  syncButtons();
+}
+
+function cyclePose(): void {
+  poseIndex = (poseIndex + 1) % DEMO_POSES.length;
+  demoPose = DEMO_POSES[poseIndex]!;
+  gestures.reset();
+  syncButtons();
+}
+
+function cycleContext(): void {
+  contextIndex = (contextIndex + 1) % APP_CONTEXTS.length;
+  appContext = APP_CONTEXTS[contextIndex]!;
   syncButtons();
 }
 
@@ -132,6 +161,8 @@ btnMirror.addEventListener("click", () => {
   map.mirrorX = !map.mirrorX;
   syncButtons();
 });
+btnPose.addEventListener("click", () => cyclePose());
+btnContext.addEventListener("click", () => cycleContext());
 btnVoice.addEventListener("click", () => {
   if (voice.status === "listening") {
     voice.stop();
@@ -172,6 +203,8 @@ window.addEventListener("keydown", (e) => {
     map.mirrorX = !map.mirrorX;
     syncButtons();
   }
+  if (e.key === "g") cyclePose();
+  if (e.key === "a") cycleContext();
 });
 
 function tick(now: number): void {
@@ -182,7 +215,7 @@ function tick(now: number): void {
 
   let hands: TrackedHand[] = [];
   if (source === "demo") {
-    hands = demoFrame(t);
+    hands = demoFrame(t, demoPose);
   } else if (tracker && !trackerLoading) {
     const detected = tracker.detect(video, t);
     if (detected.length) lastHands = detected;
@@ -198,8 +231,12 @@ function tick(now: number): void {
   };
 
   overlay.draw(state, map, { skeleton: showSkeleton, trails: showTrails });
+  const rec = gestures.observe(hands, appContext, now);
   statsFps.textContent = `${Math.round(fps)} fps`;
   statsHands.textContent = `${hands.length} hand${hands.length === 1 ? "" : "s"} · ${state.pointers.length} pointers`;
+  statsGesture.textContent = rec.stable ? rec.name.replace("_", " ") : `${rec.name.replace("_", " ")}…`;
+  statsJev.textContent = rec.askedJev ? `jev ${rec.source}` : "jev skipped";
+  intentBox.textContent = `${appContext} · ${previewIntent(appContext, rec.name)}`;
   hint.classList.toggle("hidden", hands.length > 0);
 
   requestAnimationFrame(tick);

@@ -8,6 +8,7 @@ describe("parseVoiceCommand", () => {
     expect(parseVoiceCommand("show skeleton")).toBe("toggle-skeleton");
     expect(parseVoiceCommand("hide trails")).toBe("toggle-trails");
     expect(parseVoiceCommand("mirror")).toBe("toggle-mirror");
+    expect(parseVoiceCommand("netflix")).toBe("cycle-app");
   });
 
   it("ignores unrelated speech", () => {

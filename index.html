@@ -16,17 +16,20 @@
           <span class="mark"></span>
           <div>
             <strong>Nobatility</strong>
-            <p>Ten fingertip pointers · camera + voice MVP</p>
+            <p>Ten pointers · geometry gestures · Jev only on ties</p>
           </div>
         </div>
         <div class="stats" id="stats">
           <span data-testid="fps">— fps</span>
           <span data-testid="hand-count">0 hands</span>
           <span data-testid="source">demo</span>
+          <span data-testid="gesture">gesture —</span>
+          <span data-testid="jev-status">jev skipped</span>
         </div>
       </header>
 
       <aside class="hud left-legend" id="legend"></aside>
+      <aside class="hud intent" id="intent" data-testid="intent">Step 4 preview — pick an app context</aside>
 
       <footer class="hud bottom">
         <div class="controls">
@@ -35,6 +38,8 @@
           <button type="button" id="btn-skeleton" data-testid="btn-skeleton" class="active">Skeleton</button>
           <button type="button" id="btn-trails" class="active">Trails</button>
           <button type="button" id="btn-mirror" class="active">Mirror</button>
+          <button type="button" id="btn-pose" data-testid="btn-pose">Pose: live</button>
+          <button type="button" id="btn-context" data-testid="btn-context">App: general</button>
           <button type="button" id="btn-voice" data-testid="btn-voice">Voice</button>
         </div>
         <div class="voice-pill" id="voice-pill" data-testid="voice-pill">
@@ -44,7 +49,7 @@
       </footer>
 
       <div class="hint" id="hint">
-        Raise both hands in front of the camera, or stay in Demo to see all 10 pointers.
+        Raise both hands, or cycle Pose to pinch / point / palm. App context only labels future controls.
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

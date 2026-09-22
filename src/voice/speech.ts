@@ -89,5 +89,7 @@ export function parseVoiceCommand(text: string): string | null {
   if (/\b(skeleton|bones)\b/.test(t)) return "toggle-skeleton";
   if (/\b(trail)s?\b/.test(t)) return "toggle-trails";
   if (/\bmirror\b/.test(t)) return "toggle-mirror";
+  if (/\b(pinch|pose|fist|peace|palm)\b/.test(t)) return "cycle-pose";
+  if (/\b(netflix|notes|code|app)\b/.test(t)) return "cycle-app";
   return null;
 }
