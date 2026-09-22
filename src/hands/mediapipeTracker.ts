@@ -1,10 +1,14 @@
 import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { LandmarkSmoother } from "../smoothing";
 import type { TrackedHand } from "../types";
+import { withTimeout } from "./loadTimeout";
 
 const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm";
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const GPU_CREATE_MS = 12_000;
+
+type Delegate = "GPU" | "CPU";
 
 export class MediaPipeHands {
   private landmarker: HandLandmarker | null = null;
@@ -13,10 +17,22 @@ export class MediaPipeHands {
 
   async load(): Promise<void> {
     const fileset = await FilesetResolver.forVisionTasks(WASM_URL);
-    this.landmarker = await HandLandmarker.createFromOptions(fileset, {
+    try {
+      this.landmarker = await withTimeout(
+        this.create(fileset, "GPU"),
+        GPU_CREATE_MS,
+        "MediaPipe GPU HandLandmarker",
+      );
+    } catch {
+      this.landmarker = await this.create(fileset, "CPU");
+    }
+  }
+
+  private create(fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>, delegate: Delegate) {
+    return HandLandmarker.createFromOptions(fileset, {
       baseOptions: {
         modelAssetPath: MODEL_URL,
-        delegate: "GPU",
+        delegate,
       },
       runningMode: "VIDEO",
       numHands: 2,
