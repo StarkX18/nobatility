@@ -92,6 +92,7 @@ async function startCamera(): Promise<void> {
       tracker.reset();
     }
     source = "camera";
+    lastHands = [];
     syncButtons();
   } catch (err) {
     cameraError = err instanceof Error ? err.message : "Camera failed";

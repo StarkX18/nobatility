@@ -53,7 +53,12 @@ export class MediaPipeHands {
     if (video.currentTime === this.lastVideoTime) return [];
     this.lastVideoTime = video.currentTime;
 
-    const result = this.landmarker.detectForVideo(video, t * 1000);
+    let result: ReturnType<HandLandmarker["detectForVideo"]>;
+    try {
+      result = this.landmarker.detectForVideo(video, t * 1000);
+    } catch {
+      return [];
+    }
     const hands: TrackedHand[] = [];
 
     for (let i = 0; i < result.landmarks.length; i++) {
